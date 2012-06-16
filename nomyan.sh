@@ -17,7 +17,7 @@ EOF
 exit 3
 }
 
-[[ -z $APIKEY ]] && logger "No API key specified."
+[[ -z $APIKEY ]] && logger "No API key specified." && exit 5
 NOTIFYURL="https://nma.usk.bz/publicapi/notify"
 CURL="`which curl`"
 [[ -z $CURL ]] && logger "curl not installed" && exit 1
