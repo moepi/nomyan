@@ -1,29 +1,71 @@
 #!/bin/bash
 #################################
-### Please enter your API key ###
-#################################
-APIKEY=""
+### Please enter your API key in
+### a file with APIKEY=<key> in
+### /etc/nomyan.key
+### ~/.nomyan.key
+### or as option -k
 #################################
 
-basename=$(basename "$0")
-filename=${basename%.*}
+filename=$(basename "$0")
+basename=${filename%.*}
+LOGFILE="$basename.log"
+VERBOSE=0
+LOGGING=1
 
 function logger {
-echo $@
+LOGLINE="`date +%Y-%m-%d_%H:%M:%S` [$$] $@"
+[[ $LOGGING -eq 1 ]] && echo -e $LOGLINE >> $LOGFILE
+[[ $VERBOSE -eq 1 ]] && echo -e $LOGLINE
 }
 
 function usage {
 cat << EOF
-usage: $basename application event description
+usage: $filename application event description
 
 This script notifies your android devices via Notify-My-Android app.
+
+OPTIONS:
+	-k	Specify the API-Key (overrides from apikey-files)
+	-l	Specify logfile
+	-L	Disable Logging to file
+	-v	Verbose output
 EOF
 exit 3
 }
 
-[[ ! -e $filename.key ]] && logger "No API keyfile. Please create $filename.key" && exit 5
-APIKEY="`cat $filename.key`"
-[[ -z $APIKEY ]] && logger "No valid API in the keyfile." && exit 5
+[[ -r /etc/$basename.key ]] && . /etc/$basename.key
+[[ -r ~/.$basename.key ]] && . ~/.$basename.key
+
+while getopts "hk:vl:L" OPTION
+do
+	case $OPTION in
+	h)
+		usage
+		exit 1
+		;;
+	k)
+		APIKEY=$OPTARG
+		;;
+	v)
+		VERBOSE=1
+		;;
+	L)
+		LOGGING=0
+		;;
+	l)
+		LOGFILE=$OPTARG
+		;;
+	?)
+		usage
+		exit
+		;;
+	esac
+done
+
+shift $((OPTIND-1))
+
+[[ -z $APIKEY ]] && logger "No API-Key specified." && logger "Please create API keyfile or use -k option" && usage
 NOTIFYURL="https://nma.usk.bz/publicapi/notify"
 CURL="`which curl`"
 [[ -z $CURL ]] && logger "curl not installed" && exit 1
