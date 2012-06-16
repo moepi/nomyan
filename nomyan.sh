@@ -5,25 +5,31 @@
 APIKEY=""
 #################################
 
+basename=$(basename "$0")
+filename=${basename%.*}
+
 function logger {
 echo $@
 }
 
 function usage {
 cat << EOF
-Usage: $0 <application> <event> <description>.
-This is s script for androids Notify-My-Android app.
+usage: $basename application event description
+
+This script notifies your android devices via Notify-My-Android app.
 EOF
 exit 3
 }
 
-[[ -z $APIKEY ]] && logger "No API key specified." && exit 5
+[[ ! -e $filename.key ]] && logger "No API keyfile. Please create $filename.key" && exit 5
+APIKEY="`cat $filename.key`"
+[[ -z $APIKEY ]] && logger "No valid API in the keyfile." && exit 5
 NOTIFYURL="https://nma.usk.bz/publicapi/notify"
 CURL="`which curl`"
 [[ -z $CURL ]] && logger "curl not installed" && exit 1
 
 #check for right number of arguments
-[[ ! $# -eq 3 ]] && logger "wrong number of arguments" && usage
+[[ ! $# -eq 3 ]] && logger "Wrong number of arguments." && usage
 
 NOTIFY="`curl -s --data-ascii "apikey=$APIKEY" --data-ascii "application=$1" --data-ascii "event=$2" --data-asci "description=$3" $NOTIFYURL -o- | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
 case $NOTIFY in
