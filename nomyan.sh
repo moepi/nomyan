@@ -15,6 +15,7 @@ basename=${filename%.*}
 LOGFILE="$basename.log"
 VERBOSE=0
 LOGGING=1
+PRIORITY=0
 
 function logger {
 LOGLINE="`date +%Y-%m-%d_%H:%M:%S` [$$] $@"
@@ -32,6 +33,7 @@ OPTIONS:
 	-k	Specify the API keys (overrides API keyfiles)
 	-l	Specify logfile
 	-L	Disable Logging to file
+	-p	Specify priority (-2 to 2)
 	-v	Verbose output
 EOF
 exit 3
@@ -40,7 +42,7 @@ exit 3
 [[ -r /etc/$basename.key ]] && . /etc/$basename.key
 [[ -r ~/.$basename.key ]] && . ~/.$basename.key
 
-while getopts "hk:vl:L" OPTION
+while getopts "hk:vl:Lp:" OPTION
 do
 	case $OPTION in
 	h)
@@ -58,6 +60,9 @@ do
 		;;
 	l)
 		LOGFILE=$OPTARG
+		;;
+	p)
+		PRIORITY=$OPTARG
 		;;
 	?)
 		usage
@@ -77,7 +82,7 @@ CURL="`which curl`"
 [[ ! $# -eq 3 ]] && logger "Wrong number of arguments." && usage
 
 for d in $APIKEYS; do
-	NOTIFY="`curl -s --data-ascii "apikey=$d" --data-ascii "application=$1" --data-ascii "event=$2" --data-asci "description=$3" $NOTIFYURL -o- | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
+	NOTIFY="`curl -s --data-ascii "apikey=$d" --data-ascii "application=$1" --data-ascii "event=$2" --data-asci "description=$3" --data-ascii "priority=$PRIORITY" $NOTIFYURL -o- | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
 	case $NOTIFY in
 		200)
 		logger "Notification submitted."
