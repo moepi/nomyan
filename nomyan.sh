@@ -26,7 +26,8 @@ LOGGING=1
 PRIORITY=0
 NOTIFYURL="https://nma.usk.bz/publicapi/notify"
 CURL="`which curl`"
-[[ -z $CURL ]] && logger "curl not installed" && exit 1
+WGET="`which wget`"
+[[ -z $CURL && -z $WGET ]] && logger "neither curl nor wget not installed" && exit 1
 
 function usage {
 cat << EOF
@@ -99,7 +100,15 @@ shift $((OPTIND-1))
 # iterate over API keylist
 for d in $APIKEYS; do
 	# send notifcation
-	NOTIFY="`$CURL -s --data-ascii "apikey=$d" --data-ascii "application=$1" --data-ascii "event=$2" --data-asci "description=$3" --data-ascii "priority=$PRIORITY" $NOTIFYURL -o- | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
+	# check if curl is installed (`which curl` returns nothing)
+	if [[ -n $CURL ]]; then
+		# if curl is installed use curl
+		NOTIFY="`$CURL -s --data-ascii "apikey=$d" --data-ascii "application=$1" --data-ascii "event=$2" --data-asci "description=$3" --data-ascii "priority=$PRIORITY" $NOTIFYURL -o- | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
+	else
+		# if curl is not intalled use wget
+		# one of them must be installed because of previous check
+		NOTIFY="`$WGET -q -O- --post-data "apikey=$d&application=$1&event=$2&description=$3&priority=$PRIORITY" $NOTIFYURL | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
+	fi
 	# handle return code
 	case $NOTIFY in
 		200)
