@@ -2,7 +2,7 @@
 #################################
 ### Please enter your API keys in
 ### a file with
-### APIKEYS="<key> [key]*"
+### APIKEYS="key1 key2 ..."
 ### in follow files or options
 ### 
 ### /etc/nomyan.key
@@ -27,7 +27,7 @@ PRIORITY=0
 NOTIFYURL="https://nma.usk.bz/publicapi/notify"
 CURL="`which curl`"
 WGET="`which wget`"
-[[ -z $CURL && -z $WGET ]] && logger "neither curl nor wget not installed" && exit 1
+[[ -z $CURL && -z $WGET ]] && logger "neither curl nor wget installed" && exit 1
 
 function usage {
 cat << EOF
@@ -45,8 +45,8 @@ EOF
 exit 3
 }
 
-# check default pathes for keyfiles
-# keyfile in homedir will override keyfile in /etc/
+# check default paths for keyfiles
+# keyfile in $HOME will override keyfile in /etc/
 # keyfile specified in -k option overrides everything
 [[ -r /etc/$basename.key ]] && . /etc/$basename.key
 [[ -r ~/.$basename.key ]] && . ~/.$basename.key
@@ -88,7 +88,7 @@ do
 	esac
 done
 
-# shift parsed options for easy using $1,$2 and $3
+# shift parsed options for easy use of $1,$2 and $3
 shift $((OPTIND-1))
 
 # check if API keys are set, if not print usage
