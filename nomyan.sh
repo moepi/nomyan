@@ -77,6 +77,7 @@ do
 	p)
 		# set priority
 		PRIORITY=$OPTARG
+		[[ $PRIORITY -lt -2 || $PRIORITY -gt 2 ]] && logger "The priority must be between -2 and 2." && exit 6
 		;;
 	?)
 		# print usage on unknown command
@@ -119,6 +120,10 @@ for d in $APIKEYS; do
 		500)
 		logger "Internal server error. Please contact our support if the problem persists."
 		exit 500
+		;;
+		*)
+		logger "An unexpected error occured."
+		exit 9001
 		;;
 	esac
 done
