@@ -13,20 +13,19 @@
 # a simple logger function
 function logger {
 LOGLINE="`date +%Y-%m-%d_%H:%M:%S` [$$] $@"
-[[ $LOGGING -eq 1 ]] && echo -e $LOGLINE >> $LOGFILE
-[[ $VERBOSE -eq 1 ]] && echo -e $LOGLINE
+[[ -z $NOLOG ]] && echo -e $LOGLINE >> $LOGFILE
+[[ -n $VERBOSE ]] && echo -e $LOGLINE
 }
 
 # some default settings
 filename=$(basename "$0")
 basename=${filename%.*}
 LOGFILE="$basename.log"
-VERBOSE=0
-LOGGING=1
 PRIORITY=0
+PINGHOST="4.2.2.3"
 NOTIFYURL="https://nma.usk.bz/publicapi/notify"
-CURL="`which curl`"
-WGET="`which wget`"
+CURL=$(which curl)
+WGET=$(which wget)
 [[ -z $CURL && -z $WGET ]] && logger "neither curl nor wget installed" && exit 1
 
 function usage {
@@ -36,10 +35,13 @@ usage: $filename application event description
 This script notifies your android devices via Notify-My-Android app.
 
 OPTIONS:
+	-h	Prints this usage
 	-k	Specify the API keys (overrides API keyfiles)
 	-l	Specify logfile
 	-L	Disable Logging to file
 	-p	Specify priority (-2 to 2)
+	-t	Specify the content-type
+	-u	Specify a URL/URI
 	-v	Verbose output
 EOF
 exit 3
@@ -51,7 +53,7 @@ exit 3
 [[ -r /etc/$basename.key ]] && . /etc/$basename.key
 [[ -r ~/.$basename.key ]] && . ~/.$basename.key
 
-while getopts "hk:vl:Lp:" OPTION
+while getopts "hik:l:Lp:t:u:v" OPTION
 do
 	case $OPTION in
 	h)
@@ -59,31 +61,44 @@ do
 		usage
 		exit 1
 		;;
+	i)
+		ping -qc1 $PINGHOST > /dev/null 2> /dev/null
+		[[ $? -ne 0 ]] && logger "No connection to nma host." && exit 5
+		;;
+		
 	k)
 		# set apikey from option
 		APIKEY=$OPTARG
 		;;
-	v)
-		# enable verbose logging
-		VERBOSE=1
-		;;
-	L)
-		# disable logging to file
-		LOGGING=0
-		;;
 	l)
 		# specify logfile
 		LOGFILE=$OPTARG
+		;;
+	L)
+		# disable logging to file
+		NOLOG=0
 		;;
 	p)
 		# set priority
 		PRIORITY=$OPTARG
 		[[ $PRIORITY -lt -2 || $PRIORITY -gt 2 ]] && logger "The priority must be between -2 and 2." && exit 6
 		;;
+	t)
+		# specify optional content-type
+		CONTENTTYPE="--data-ascii content-type=$OPTARG"
+		#CONTENTTYPE="--data-ascii \"content-type=$OPTARG\""
+		;;
+	u)
+		# specify optional url
+		URL="--data-ascii url=$OPTARG"
+		;;
+	v)
+		# enable verbose logging
+		VERBOSE=1
+		;;
 	?)
 		# print usage on unknown command
 		usage
-		exit
 		;;
 	esac
 done
@@ -103,11 +118,11 @@ for d in $APIKEYS; do
 	# check if curl is installed (`which curl` returns nothing)
 	if [[ -n $CURL ]]; then
 		# if curl is installed use curl
-		NOTIFY="`$CURL -s --data-ascii "apikey=$d" --data-ascii "application=$1" --data-ascii "event=$2" --data-asci "description=$3" --data-ascii "priority=$PRIORITY" $NOTIFYURL -o- | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
+		NOTIFY="`$CURL -s --data-ascii apikey=$d --data-ascii application="$1" --data-ascii event="$2" --data-asci description="$3" --data-ascii priority=$PRIORITY $URL $CONTENTTYPE $NOTIFYURL -o- | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
 	else
 		# if curl is not intalled use wget
 		# one of them must be installed because of previous check
-		NOTIFY="`$WGET -q -O- --post-data "apikey=$d&application=$1&event=$2&description=$3&priority=$PRIORITY" $NOTIFYURL | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
+		NOTIFY="`$WGET -q -O- --post-data "apikey=$d&application=$1&event=$2&description=$3&priority=$PRIORITY $URL $CONTENTTYPE" $NOTIFYURL | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
 	fi
 	# handle return code
 	case $NOTIFY in
