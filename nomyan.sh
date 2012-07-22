@@ -26,7 +26,7 @@ PINGHOST="4.2.2.3"
 NOTIFYURL="https://nma.usk.bz/publicapi/notify"
 CURL=$(which curl)
 WGET=$(which wget)
-[[ -z $CURL && -z $WGET ]] && logger "neither curl nor wget installed" && exit 1
+[[ -z $CURL && -z $WGET ]] && logger "Neither curl nor wget installed" && exit 1
 
 function usage {
 cat << EOF
@@ -62,10 +62,10 @@ do
 		exit 1
 		;;
 	i)
+		# ping check
 		ping -qc1 $PINGHOST > /dev/null 2> /dev/null
-		[[ $? -ne 0 ]] && logger "No connection to nma host." && exit 5
+		[[ $? -ne 0 ]] && logger "No connection to ping host." && exit 5
 		;;
-		
 	k)
 		# set apikey from option
 		APIKEY=$OPTARG
@@ -86,7 +86,6 @@ do
 	t)
 		# specify optional content-type
 		CONTENTTYPE="--data-ascii content-type=$OPTARG"
-		#CONTENTTYPE="--data-ascii \"content-type=$OPTARG\""
 		;;
 	u)
 		# specify optional url
@@ -115,7 +114,7 @@ shift $((OPTIND-1))
 # iterate over API keylist
 for d in $APIKEYS; do
 	# send notifcation
-	# check if curl is installed (`which curl` returns nothing)
+	# check if curl is installed ($(which curl) returned nothing)
 	if [[ -n $CURL ]]; then
 		# if curl is installed use curl
 		NOTIFY="`$CURL -s --data-ascii apikey=$d --data-ascii application="$1" --data-ascii event="$2" --data-asci description="$3" --data-ascii priority=$PRIORITY $URL $CONTENTTYPE $NOTIFYURL -o- | sed 's/.*success code="\([0-9]*\)".*/\1/'`"
